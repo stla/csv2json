@@ -43,15 +43,22 @@ cellToValue string
   | otherwise =
     String (pack string)
 
+
 splitCSV :: [[String]] -> ([String], [[Value]])
-splitCSV csv = (head csv, map (map cellToValue) $ transpose $ tail csv)
+splitCSV csv = (header, map (map cellToValue) $ transpose body)
+  where (header, body) = (head csv, tail csv)
 
 csvToList :: [[String]] -> [(String, [Value])]
 csvToList csv = map ((!!) header &&& (!!) body) [0 .. length header -1]
   where (header, body) = splitCSV csv
 
-csvToJson :: [[String]] -> ByteString
-csvToJson = encode . M.fromList . csvToList
+-- TODO header option
+csvToJson :: [[String]] -> Bool -> ByteString
+csvToJson csv header
+  | header =  (encode . M.fromList . csvToList) csv
+  | otherwise = csvToJson csv2 True
+    where csv2 = row : csv
+          row = map (\i -> 'X' : show i) [1 .. length (head csv)]
 
 getCSV :: FilePath -> Char -> IO [[String]]
 getCSV csv sep = do
